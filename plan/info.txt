@@ -218,14 +218,15 @@ function (doc, meta) {
 }
 
 function(key, values, rereduce) {
-  var result = [];
+  var result = {};
   if(rereduce) {
-     //
+     result = values[0];
     } else {
     result = {"lang": key[0], "symbol": values[0]};
     }
   return(result);
 }
+
 
 ================================================================
 
@@ -235,7 +236,7 @@ UWAGA: do pracy widoków potrzebujemy otwarty port TCP 8093 i TCP 11210
 
 kubectl port-forward -n default service/cb-training-3-service 8093:8093 --address=0.0.0.0
 
-Kod w q1-7
+Kod w q1-7.js
 
 ================================================================
 
