@@ -1,3 +1,14 @@
+data/docs/book/*
+data/docs/cover/*
+data/docs/group/*
+data/docs/keyword/*
+data/docs/level/*
+data/docs/meta/*
+data/docs/publisher/*
+data/docs/review/*
+data/docs/toc/*
+
+
 # Logs
 logs
 *.log

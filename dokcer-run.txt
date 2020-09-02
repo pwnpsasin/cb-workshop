@@ -1,0 +1,2 @@
+docker run --rm -t --name db -p 8091-8094:8091-8094 -v /tmp/b:/opt/couchbase/var -p 11210:11210 couchbase
+

@@ -1,0 +1,255 @@
+
+./run.sh
+
+kubectl port-forward -n default service/cb-training-1-service 8091:8091 --address=0.0.0.0
+lub
+kubectl port-forward -n default service/cb-training-1-service 8091:8091 --address=192.168.4.37
+
+
+./users/sh
+
+kubectl describe pods
+pobrać ip (10.244.0.59)
+
+
+./fill.sh 10.244.0.59
+lub
+./import.sh 10.244.0.59
+
+
+================================================================
+Odwiedzamy stronę
+http://192.168.4.37:8091
+================================================================
+
+Logujemy się: api01 / api01szkolenie i analogicznie od api01 do api10
+
+================================================================
+Index główny
+CREATE PRIMARY INDEX on demo
+
+================================================================
+Indeks szukania typów dokumentów
+
+Zapytanie 1
+select * from demo where type = 'cover' limit 10
+
+Index i ponowne zapytanie
+CREATE INDEX adv_type ON `demo`(`type`)
+select * from demo where type = 'cover' limit 10
+
+================================================================
+Ile mamy typów dokumentów - jak ważne są warunki
+
+select DISTINCT type from demo
+
+trochę to potrwa więc lepiej 
+
+select DISTINCT type from demo where type <> 0
+
+================================================================
+Meta dane konkretnej książki
+
+select * from demo where type=book and id=100435
+
+i znowu wolno...
+
+w warunku jest "id" więc załóżmy Index
+
+CREATE INDEX adv_id_type_meta ON `demo`(`id`) WHERE `type` = 'meta'
+
+i teraz
+
+select * from demo where type='meta' and id=100435
+
+dokładniej - starajcie wybierać tylko te pola, które Wam potrzebne
+
+select title, author, lang from demo where type='meta' and id=100435 limit 1
+================================================================
+
+Użycie klucza przyspiesz dostęp, jeśli z góry wiemy, o który dokument nam chodzi...
+
+select title, author, lang from demo USE KEYS 'meta::100435'
+
+================================================================
+Kontrakt kontra książki
+
+CREATE INDEX adv_id_type_contract ON `demo`(`id`) WHERE `type` = 'contract'
+CREATE INDEX adv_id_type_book ON `demo`(`id`) WHERE `type` = 'book'
+
+
+Książki klienta nr 5
+
+SELECT a.* FROM `demo` a USE KEYS 'contract::5'
+
+Odwracamy logikę - nam nie chodzi o kontrakt i jego wnętrze, tylko o listę książek, 
+które tam są wpisane i uzupełnienie ich o detale
+
+SELECT a.* FROM `demo` a USE KEYS 'contract::5' UNNEST books book
+
+teraz bez nadmiaru
+
+SELECT book 
+FROM `demo` a 
+USE KEYS 'contract::5' 
+UNNEST books book
+
+dopisujemy połączenie kolejnej cechy np. w book zapisane jest data trwania licencji
+
+SELECT book, b[0] 
+FROM `demo` a USE KEYS 'contract::5' 
+UNNEST books book 
+LEFT NEST `demo` b ON (book.id = b.id AND b.type = 'book')
+
+ale dostajemy zagnieżdżenie, które nam przeszkadza więc tak:
+
+SELECT book, b[0].* 
+FROM `demo` a 
+USE KEYS 'contract::5' 
+UNNEST books book 
+LEFT NEST `demo` b ON (book.id = b.id AND b.type = 'book')
+
+i jeszcze jedno zagnieżdżenie:
+
+SELECT book.*, b[0].* 
+FROM `demo` a 
+USE KEYS 'contract::5' 
+UNNEST books book 
+LEFT NEST `demo` b ON (book.id = b.id AND b.type = 'book')
+
+Teraz dopniemy do wyniku kolejne szczegóły - poziom kategorii książkowej, ale najpierw indeks
+
+CREATE INDEX adv_id_type_level ON `demo`(`id`) WHERE `type` = 'level'
+
+i zapytanie:
+
+SELECT book.*, b[0].*, lev[0].* 
+FROM `demo` a 
+USE KEYS 'contract::5' 
+UNNEST books book 
+LEFT NEST `demo` b ON (book.id = b.id AND b.type = 'book') 
+LEFT NEST `demo` lev ON (book.id = lev.id AND lev.type = 'level')
+
+
+i konkretne pola level
+SELECT book.*, b[0].*, lev[0].l1, lev[0].l2, lev[0].l3, lev[0].l4, lev[0].l5 
+FROM `demo` a 
+USE KEYS 'contract::5' 
+UNNEST books book 
+LEFT NEST `demo` b ON (book.id = b.id AND b.type = 'book') 
+LEFT NEST `demo` lev ON (book.id = lev.id AND lev.type = 'level')
+
+
+================================================================
+
+Książki z kilku bibliotek
+SELECT book.*, b[0].*, lev[0].l1, lev[0].l2, lev[0].l3, lev[0].l4, lev[0].l5 
+FROM `demo` a 
+USE KEYS ['contract::5','contract::7'] 
+UNNEST books book 
+LEFT NEST `demo` b ON (book.id = b.id AND b.type = 'book') 
+LEFT NEST `demo` lev ON (book.id = lev.id AND lev.type = 'level')
+
+ale mamy duble...
+
+Bez dubli
+
+SELECT DISTINCT book.*, b[0].*, lev[0].l1, lev[0].l2, lev[0].l3, lev[0].l4, lev[0].l5 
+FROM `demo` a USE KEYS ['contract::5','contract::7'] 
+UNNEST books book 
+LEFT NEST `demo` b ON (book.id = b.id AND b.type = 'book') 
+LEFT NEST `demo` lev ON (book.id = lev.id AND lev.type = 'level')
+
+================================================================
+doczepiamy okładki ale najpierw sprawdźmy index
+CREATE INDEX adv_id_type_cover ON `demo`(`id`) WHERE `type` = 'cover'
+
+i pytanie
+
+
+================================================================
+widok - licznik - ViewQuery przez driver
+
+UWAGA: do pracy widoków potrzebujemy otwarty port TCP 8092 i TCP 11210
+
+kubectl port-forward -n default service/cb-training-2-service 8092:8092 --address=0.0.0.0
+
+oraz nasłuch na port 11210 - autoryzacja
+
+kubectl port-forward -n default service/cb-training-6-service 11210:11210 --address=0.0.0.0
+
+
+function (doc, meta) {
+  if (doc.type =='meta' && doc.lang) emit(doc.lang, doc.lang_symbol);
+}
+
+kod w v1.js
+================================================================
+z parametrami
+
+kod w v2.js i v3.js
+================================================================
+Widok z redukcją:
+
+function (doc, meta) {
+  if (doc.type == 'meta' && doc.lang && doc.lang_symbol) emit(doc.lang, doc.lang_symbol);
+}
+
+function(key, values, rereduce) {
+  var result = {count: 0};
+  for(i=0; i < values.length; i++) {
+    if(rereduce) {
+        result.count = result.count + values[i].count;
+    } else {
+        result.count = values.length;
+    }
+  }
+  return(result);
+}
+
+reduce i group_level=1
+
+================================================================
+
+widok z redukcją - lista języków np.
+
+function (doc, meta) {
+  if (doc.type == 'meta' && doc.lang && doc.lang_symbol) emit(doc.lang, doc.lang_symbol);
+}
+
+function(key, values, rereduce) {
+  var result = [];
+  if(rereduce) {
+     //
+    } else {
+    result = {"lang": key[0], "symbol": values[0]};
+    }
+  return(result);
+}
+
+================================================================
+
+N1SQL przez driver
+
+UWAGA: do pracy widoków potrzebujemy otwarty port TCP 8093 i TCP 11210
+
+kubectl port-forward -n default service/cb-training-3-service 8093:8093 --address=0.0.0.0
+
+Kod w q1-7
+
+================================================================
+
+Zapytania analityczne
+
+UWAGA: do pracy analityk potrzebujemy otwierty port TCP 8095
+
+kubectl port-forward -n default service/cb-training-5-service 8095:8095 --address=0.0.0.0
+
+kod w q8.js
+
+================================================================
+================================================================
+================================================================
+================================================================
+================================================================
+

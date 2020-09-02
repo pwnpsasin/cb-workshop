@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: cb-training
+spec:
+  replicas: 1
+  selector:
+    app: cb-training-pod
+  template:
+    metadata:
+      labels:
+        app: cb-training-pod
+    spec:
+      containers:
+      - name: cb-training
+        image: pwnpsasin/cbcluster:v1
+        env:
+          - name: CBPASSWD
+            value: "demodemo2020"
+          - name: TYPE
+            value: MASTER
+        ports:
+        - containerPort: 8091
+        - containerPort: 8092
+        - containerPort: 8093
+        - containerPort: 8094
+        - containerPort: 8095
+        - containerPort: 11210
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: cb-training-1-service
+  labels: 
+    app: cb-training-1-service
+spec: 
+  ports:
+    - port: 8091
+
+  selector: 
+    app: cb-training-pod
+  type: LoadBalancer
+
+
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: cb-training-2-service
+  labels: 
+    app: cb-training-2-service
+spec: 
+  ports:
+    - port: 8092
+
+  selector: 
+    app: cb-training-pod
+  type: LoadBalancer
+
+
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: cb-training-3-service
+  labels: 
+    app: cb-training-3-service
+spec: 
+  ports:
+    - port: 8093
+
+  selector: 
+    app: cb-training-pod
+  type: LoadBalancer
+
+
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: cb-training-4-service
+  labels: 
+    app: cb-training-4-service
+spec: 
+  ports:
+    - port: 8094
+
+  selector: 
+    app: cb-training-pod
+  type: LoadBalancer
+
+
+
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: cb-training-5-service
+  labels: 
+    app: cb-training-5-service
+spec: 
+  ports:
+    - port: 8095
+
+  selector: 
+    app: cb-training-pod
+  type: LoadBalancer
+
+---
+apiVersion: v1
+kind: Service
+metadata: 
+  name: cb-training-6-service
+  labels: 
+    app: cb-training-6-service
+spec: 
+  ports:
+    - port: 11210
+
+  selector: 
+    app: cb-training-pod
+  type: LoadBalancer
+

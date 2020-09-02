@@ -1,0 +1,5 @@
+SELECT book, a.owner, b[0] as details, c[0].name as level1  FROM `shop` a USE KEYS 'contract:5' UNNEST books book LEFT NEST `shop` b ON (book = b.id AND b.type = 'book') LEFT NEST `shop` c ON (b[0].l1 = c.id AND c.type = 'level');
+
+
+SELECT book.*, a.owner, b[0].*, c[0].name as level1  FROM `shop` a USE KEYS 'contract:5' UNNEST books book LEFT NEST `shop` b ON (book.id = b.id AND b.type = 'book') LEFT NEST `shop` c ON (b[0].l1 = c.id AND c.type = 'level') LIMIT 10;
+

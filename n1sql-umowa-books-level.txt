@@ -1,0 +1,2 @@
+SELECT a.owner, b as books, c  FROM `shop` a USE KEYS 'contract:5' NEST (SELECT d.id, d.type, d.title, c[0].name as level FROM `shop` d NEST `shop` c ON (d.l1 = c.id AND c.type = 'level')) b ON (b.id IN a.books AND b.type = 'book');
+
