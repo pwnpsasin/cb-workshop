@@ -1,5 +1,6 @@
 {
   "id": 5,
   "name": "Biblioteka im. Misia Uszatka",
-  "city": "Kraków"
+  "city": "Kraków",
+  "type": "client"
 }
